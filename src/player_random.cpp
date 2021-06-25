@@ -1,9 +1,9 @@
-#include <iostream>
-#include <fstream>
 #include <array>
-#include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
+#include <iostream>
+#include <vector>
 
 struct Point {
     int x, y;

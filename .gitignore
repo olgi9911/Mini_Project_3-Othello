@@ -58,6 +58,11 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+!baseline/windows/*
+!baseline/mac/*
+!baseline/linux/*
+!src/makefile
+
 .vscode/**
 **/.DS_Store
 **/.dSYM
@@ -68,10 +73,8 @@ dkms.conf
 **/tasks.json
 **/c_cpp_properties.json
 
-!baseline/windows/*
-!baseline/mac/*
-!baseline/linux/*
-!src/makefile
 
 *.txt
+*src/player_test.cpp
+*src/player_brady.cpp
 

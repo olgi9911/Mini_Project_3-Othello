@@ -1,49 +1,48 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>
 #include <array>
-#include <vector>
 #include <cassert>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 struct Point {
     int x, y;
-	Point() : Point(0, 0) {}
-	Point(float x, float y) : x(x), y(y) {}
-	bool operator==(const Point& rhs) const {
-		return x == rhs.x && y == rhs.y;
-	}
-	bool operator!=(const Point& rhs) const {
-		return !operator==(rhs);
-	}
-	Point operator+(const Point& rhs) const {
-		return Point(x + rhs.x, y + rhs.y);
-	}
-	Point operator-(const Point& rhs) const {
-		return Point(x - rhs.x, y - rhs.y);
-	}
+    Point() : Point(0, 0) {}
+    Point(float x, float y) : x(x), y(y) {}
+    bool operator==(const Point& rhs) const {
+        return x == rhs.x && y == rhs.y;
+    }
+    bool operator!=(const Point& rhs) const {
+        return !operator==(rhs);
+    }
+    Point operator+(const Point& rhs) const {
+        return Point(x + rhs.x, y + rhs.y);
+    }
+    Point operator-(const Point& rhs) const {
+        return Point(x - rhs.x, y - rhs.y);
+    }
 };
 
 class OthelloBoard {
-public:
+   public:
     enum SPOT_STATE {
         EMPTY = 0,
         BLACK = 1,
         WHITE = 2
     };
     static const int SIZE = 8;
-    const std::array<Point, 8> directions{{
-        Point(-1, -1), Point(-1, 0), Point(-1, 1),
-        Point(0, -1), /*{0, 0}, */Point(0, 1),
-        Point(1, -1), Point(1, 0), Point(1, 1)
-    }};
+    const std::array<Point, 8> directions{{Point(-1, -1), Point(-1, 0), Point(-1, 1),
+                                           Point(0, -1), /*{0, 0}, */ Point(0, 1),
+                                           Point(1, -1), Point(1, 0), Point(1, 1)}};
     std::array<std::array<int, SIZE>, SIZE> board;
     std::vector<Point> next_valid_spots;
     std::array<int, 3> disc_count;
     int cur_player;
     bool done;
     int winner;
-private:
+
+   private:
     int get_next_player(int player) const {
         return 3 - player;
     }
@@ -66,7 +65,7 @@ private:
     bool is_spot_valid(Point center) const {
         if (get_disc(center) != EMPTY)
             return false;
-        for (Point dir: directions) {
+        for (Point dir : directions) {
             // Move along the direction while testing.
             Point p = center + dir;
             if (!is_disc_at(p, get_next_player(cur_player)))
@@ -81,7 +80,7 @@ private:
         return false;
     }
     void flip_discs(Point center) {
-        for (Point dir: directions) {
+        for (Point dir : directions) {
             // Move along the direction while testing.
             Point p = center + dir;
             if (!is_disc_at(p, get_next_player(cur_player)))
@@ -90,7 +89,7 @@ private:
             p = p + dir;
             while (is_spot_on_board(p) && get_disc(p) != EMPTY) {
                 if (is_disc_at(p, cur_player)) {
-                    for (Point s: discs) {
+                    for (Point s : discs) {
                         set_disc(s, cur_player);
                     }
                     disc_count[cur_player] += discs.size();
@@ -102,7 +101,8 @@ private:
             }
         }
     }
-public:
+
+   public:
     OthelloBoard() {
         reset();
     }
@@ -115,7 +115,7 @@ public:
         board[3][4] = board[4][3] = BLACK;
         board[3][3] = board[4][4] = WHITE;
         cur_player = BLACK;
-        disc_count[EMPTY] = 8*8-4;
+        disc_count[EMPTY] = 8 * 8 - 4;
         disc_count[BLACK] = 2;
         disc_count[WHITE] = 2;
         next_valid_spots = get_valid_spots();
@@ -136,7 +136,7 @@ public:
         return valid_spots;
     }
     bool put_disc(Point p) {
-        if(!is_spot_valid(p)) {
+        if (!is_spot_valid(p)) {
             winner = get_next_player(cur_player);
             done = true;
             return false;
@@ -157,9 +157,12 @@ public:
                 done = true;
                 int white_discs = disc_count[WHITE];
                 int black_discs = disc_count[BLACK];
-                if (white_discs == black_discs) winner = EMPTY;
-                else if (black_discs > white_discs) winner = BLACK;
-                else winner = WHITE;
+                if (white_discs == black_discs)
+                    winner = EMPTY;
+                else if (black_discs > white_discs)
+                    winner = BLACK;
+                else
+                    winner = WHITE;
             }
         }
         return true;
@@ -175,10 +178,10 @@ public:
         if (board[x][y] == WHITE) return "X";
         return " ";
     }
-    std::string encode_output(bool fail=false) {
+    std::string encode_output(bool fail = false) {
         int i, j;
         std::stringstream ss;
-        ss << "Timestep #" << (8*8-4-disc_count[EMPTY]+1) << "\n";
+        ss << "Timestep #" << (8 * 8 - 4 - disc_count[EMPTY] + 1) << "\n";
         ss << "O: " << disc_count[BLACK] << "; X: " << disc_count[WHITE] << "\n";
         if (fail) {
             ss << "Winner is " << encode_player(winner) << " (Opponent performed invalid move)\n";
@@ -190,7 +193,7 @@ public:
         ss << "+---------------+\n";
         for (i = 0; i < SIZE; i++) {
             ss << "|";
-            for (j = 0; j < SIZE-1; j++) {
+            for (j = 0; j < SIZE - 1; j++) {
                 ss << encode_spot(i, j) << " ";
             }
             ss << encode_spot(i, j) << "|\n";
@@ -214,7 +217,7 @@ public:
         std::stringstream ss;
         ss << cur_player << "\n";
         for (i = 0; i < SIZE; i++) {
-            for (j = 0; j < SIZE-1; j++) {
+            for (j = 0; j < SIZE - 1; j++) {
                 ss << board[i][j] << " ";
             }
             ss << board[i][j] << "\n";
@@ -279,7 +282,8 @@ int main(int argc, char** argv) {
             int x, y;
             if (!(fin >> x)) break;
             if (!(fin >> y)) break;
-            p.x = x; p.y = y;
+            p.x = x;
+            p.y = y;
         }
         fin.close();
         // Reset action file

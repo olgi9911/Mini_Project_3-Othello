@@ -30,14 +30,14 @@ const int MAX = INT32_MAX;
 const int MIN = INT32_MIN;
 const int weight_table[SIZE][SIZE] =
     {
-        {500, -25, 10, 5, 5, 10, -25, 500},
+        {50, -25, 10, 5, 5, 10, -25, 50},
         {-25 - 45, 1, 1, 1, 1, -45, -25},
         {10, 1, 3, 2, 2, 3, 1, 10},
         {5, 1, 2, 1, 1, 2, 1, 5},
         {5, 1, 2, 1, 1, 2, 1, 5},
         {10, 1, 3, 2, 2, 3, 1, 10},
         {-25, -45, 1, 1, 1, 1, -45, -25},
-        {500, -25, 10, 5, 5, 10, -25, 500},
+        {50, -25, 10, 5, 5, 10, -25, 50},
 };
 std::array<std::array<int, SIZE>, SIZE> board;
 std::vector<Point> next_valid_spots;
@@ -124,9 +124,15 @@ class OthelloBoard {
     OthelloBoard(std::array<std::array<int, SIZE>, SIZE> new_board) {
         cur_player = player;
         done = false;
-        for (int i = 0; i < SIZE; i++)
-            for (int j = 0; j < SIZE; j++)
+        disc_count[0] = 0;
+        disc_count[1] = 0;
+        disc_count[2] = 0;
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
                 board[i][j] = new_board[i][j];
+                disc_count[board[i][j]]++;
+            }
+        }
     }
     OthelloBoard(const OthelloBoard& state) {  // copy constructor
         for (int i = 0; i < SIZE; i++) {
@@ -137,6 +143,9 @@ class OthelloBoard {
         cur_player = state.cur_player;
         done = state.done;
         next_valid_spots = state.next_valid_spots;
+        for (int i = 0; i < 3; i++) {
+            disc_count[i] = state.disc_count[i];
+        }
     }
     std::vector<Point> get_valid_spots() const {
         std::vector<Point> valid_spots;
@@ -158,8 +167,8 @@ class OthelloBoard {
             return false;
         }
         set_disc(p, cur_player);
-        //disc_count[cur_player]++;
-        //disc_count[EMPTY]--;*/
+        disc_count[cur_player]++;
+        disc_count[EMPTY]--;
         flip_discs(p);
         // Give control to the other player.
         cur_player = get_next_player(cur_player);
@@ -196,24 +205,37 @@ int set_value(OthelloBoard state) {
     } else {
         value += weight(state);
     }
+    if (state.cur_player == player) {
+        value += state.next_valid_spots.size() * 32 * (1 / SIZE * SIZE);
+    } else if (state.cur_player == 3 - player) {
+        value -= state.next_valid_spots.size() * 32 * (1 / SIZE * SIZE);
+    }
     return value;
 }
 
-int minimax(OthelloBoard state, Point p, int depth) {
+int minimax(OthelloBoard state, Point p, int depth, int alpha, int beta) {
     OthelloBoard new_state = state;
     new_state.put_disc(p);
     int val = 0;
-    if (state.done || depth == 0) {
+    if (new_state.done || depth == 0) {
         return set_value(new_state);
-    } else if (state.cur_player == player) {
+    } else if (new_state.cur_player == player) {
         val = MIN;
         for (auto new_p : new_state.next_valid_spots) {
-            val = std::max(val, minimax(new_state, new_p, depth - 1));
+            val = std::max(val, minimax(new_state, new_p, depth - 1, alpha, beta));
+            alpha = std::max(alpha, val);
+            if (beta <= alpha) {
+                break;  // alpha-beta pruning
+            }
         }
-    } else if (state.cur_player == 3 - player) {
+    } else if (new_state.cur_player == 3 - player) {
         val = MAX;
         for (auto new_p : new_state.next_valid_spots) {
-            val = std::min(val, minimax(new_state, new_p, depth - 1));
+            val = std::min(val, minimax(new_state, new_p, depth - 1, alpha, beta));
+            beta = std::min(beta, val);
+            if (beta <= alpha) {
+                break;  // alpha-beta pruning
+            }
         }
     }
     return val;
@@ -243,7 +265,12 @@ void write_valid_spot(std::ofstream& fout) {
     OthelloBoard state(board);  // construct the cur_state
     int val = 0, greatest = MIN;
     for (auto pt : next_valid_spots) {
-        val = minimax(state, pt, 3);
+        val = minimax(state, pt, 1, MIN, MAX);
+        if (val >= greatest) {
+            fout << pt.x << " " << pt.y << std::endl;
+            fout.flush();
+        }
+        val = minimax(state, pt, 5, MIN, MAX);
         if (val >= greatest) {
             greatest = val;
             final = pt;

@@ -30,14 +30,14 @@ const int MAX = INT32_MAX;
 const int MIN = INT32_MIN;
 const int weight_table[SIZE][SIZE] =
     {
-        {50, -25, 10, 5, 5, 10, -25, 50},
+        {60, -25, 10, 5, 5, 10, -25, 60},
         {-25 - 45, 1, 1, 1, 1, -45, -25},
         {10, 1, 3, 2, 2, 3, 1, 10},
         {5, 1, 2, 1, 1, 2, 1, 5},
         {5, 1, 2, 1, 1, 2, 1, 5},
         {10, 1, 3, 2, 2, 3, 1, 10},
         {-25, -45, 1, 1, 1, 1, -45, -25},
-        {50, -25, 10, 5, 5, 10, -25, 50},
+        {60, -25, 10, 5, 5, 10, -25, 60},
 };
 std::array<std::array<int, SIZE>, SIZE> board;
 std::vector<Point> next_valid_spots;
@@ -186,6 +186,80 @@ class OthelloBoard {
     }
 };
 
+int stable_discs(OthelloBoard state) {
+    int val = 0, amount = 10;
+    std::array<std::array<int, SIZE>, SIZE> board = state.board;
+    if (board[0][0] != 0) {
+        int coeff = board[0][0] == player ? 1 : -1;
+        for (int i = 0; i <= 7; i++) {
+            if (board[0][i] == board[0][0]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+        for (int i = 0; i <= 7; i++) {
+            if (board[i][0] == board[0][0]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+    }
+    if (board[7][0]) {
+        int coeff = board[7][0] == player ? 1 : -1;
+        for (int i = 6; i >= 0; i--) {
+            if (board[i][0] == board[7][0]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+        for (int i = 0; i <= 7; i++) {
+            if (board[7][i] == board[7][0]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+    }
+    if (board[7][7]) {
+        int coeff = board[7][7] == player ? 1 : -1;
+        for (int i = 6; i >= 0; i--) {
+            if (board[i][7] == board[7][7]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+        for (int i = 6; i >= 0; i++) {
+            if (board[7][i] == board[7][7]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+    }
+    if (board[0][7]) {
+        int coeff = board[0][7] == player ? 1 : -1;
+        for (int i = 6; i >= 0; i--) {
+            if (board[0][i] == board[0][7]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+        for (int i = 0; i <= 7; i++) {
+            if (board[i][7] == board[0][7]) {
+                val += coeff * amount;
+            } else {
+                break;
+            }
+        }
+    }
+    return val;
+}
+
 int weight(OthelloBoard state) {
     int val = 0;
     for (int i = 0; i < SIZE; i++)
@@ -201,14 +275,17 @@ int weight(OthelloBoard state) {
 int set_value(OthelloBoard state) {
     int value = 0;
     if (state.done) {
-        return state.disc_count[player] - state.disc_count[3 - player];
+        value = state.disc_count[player] - state.disc_count[3 - player];
     } else {
+        /*weight table*/
         value += weight(state);
-    }
-    if (state.cur_player == player) {
-        value += state.next_valid_spots.size() * 32 * (1 / SIZE * SIZE);
-    } else if (state.cur_player == 3 - player) {
-        value -= state.next_valid_spots.size() * 32 * (1 / SIZE * SIZE);
+        /*mobility*/
+        if (state.cur_player == player) {
+            value += state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
+        } else if (state.cur_player == 3 - player) {
+            value -= state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
+        }
+        value += stable_discs(state);
     }
     return value;
 }
@@ -265,11 +342,17 @@ void write_valid_spot(std::ofstream& fout) {
     OthelloBoard state(board);  // construct the cur_state
     int val = 0, greatest = MIN;
     for (auto pt : next_valid_spots) {
-        val = minimax(state, pt, 1, MIN, MAX);
+        val = minimax(state, pt, 2, MIN, MAX);
         if (val >= greatest) {
-            fout << pt.x << " " << pt.y << std::endl;
-            fout.flush();
+            greatest = val;
+            final = pt;
         }
+    }
+    fout << final.x << " " << final.y << std::endl;
+    fout.flush();
+
+    val = 0, greatest = MIN;
+    for (auto pt : next_valid_spots) {
         val = minimax(state, pt, 5, MIN, MAX);
         if (val >= greatest) {
             greatest = val;

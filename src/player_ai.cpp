@@ -186,8 +186,8 @@ class OthelloBoard {
     }
 };
 
-int stable_discs(OthelloBoard state) {
-    int val = 0, amount = 10;
+int stable_edges(OthelloBoard state) {
+    int val = 0, amount = 11;
     std::array<std::array<int, SIZE>, SIZE> board = state.board;
     if (board[0][0] != 0) {
         int coeff = board[0][0] == player ? 1 : -1;
@@ -285,7 +285,7 @@ int set_value(OthelloBoard state) {
         } else if (state.cur_player == 3 - player) {
             value -= state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
         }
-        value += stable_discs(state);
+        value += stable_edges(state);
     }
     return value;
 }
@@ -342,7 +342,7 @@ void write_valid_spot(std::ofstream& fout) {
     OthelloBoard state(board);  // construct the cur_state
     int val = 0, greatest = MIN;
     for (auto pt : next_valid_spots) {
-        val = minimax(state, pt, 2, MIN, MAX);
+        val = minimax(state, pt, 3, MIN, MAX);
         if (val >= greatest) {
             greatest = val;
             final = pt;

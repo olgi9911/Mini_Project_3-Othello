@@ -272,20 +272,52 @@ int weight(OthelloBoard state) {
     return val;
 }
 
+int mobility(OthelloBoard state) {
+    int val = 0;
+    if (state.cur_player == player) {
+        val += state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
+    } else if (state.cur_player == 3 - player) {
+        val -= state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
+    }
+    return val;
+}
+
+int parity(OthelloBoard state) {
+    if (state.disc_count[0] % 2) {
+        return (state.cur_player == player ? 1 : -1);
+    } else {
+        return (state.cur_player == player ? -1 : 1);
+    }
+}
+
+int discs_diff(OthelloBoard state) {
+    if (state.cur_player == player) {
+        return 100 * (state.disc_count[player] - state.disc_count[3 - player]) / (64 - state.disc_count[0]);
+    } else {
+        return 100 * (state.disc_count[3 - player] - state.disc_count[player]) / (64 - state.disc_count[0]);
+    }
+}
+
 int set_value(OthelloBoard state) {
     int value = 0;
     if (state.done) {
-        value = state.disc_count[player] - state.disc_count[3 - player];
-    } else {
-        /*weight table*/
+        value = 100 * state.disc_count[player] - state.disc_count[3 - player];
+    } else if (state.disc_count[0] >= 44) {
         value += weight(state);
-        /*mobility*/
-        if (state.cur_player == player) {
-            value += state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
-        } else if (state.cur_player == 3 - player) {
-            value -= state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
-        }
+        value += 2 * mobility(state);
         value += stable_edges(state);
+    } else if (state.disc_count[0] >= 12) {
+        value += weight(state);
+        value += mobility(state);
+        value += stable_edges(state);
+        value += 5 * parity(state);
+        value += 0.1 * discs_diff(state);
+    } else {
+        //value += weight(state);
+        //value += mobility(state);
+        value += stable_edges(state);
+        value += 5 * parity(state);
+        value += 0.75 * discs_diff(state);
     }
     return value;
 }
@@ -342,7 +374,7 @@ void write_valid_spot(std::ofstream& fout) {
     OthelloBoard state(board);  // construct the cur_state
     int val = 0, greatest = MIN;
     for (auto pt : next_valid_spots) {
-        val = minimax(state, pt, 3, MIN, MAX);
+        val = minimax(state, pt, 3, MIN, MAX);  // in case timeout is set to 1
         if (val >= greatest) {
             greatest = val;
             final = pt;

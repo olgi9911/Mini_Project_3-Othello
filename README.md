@@ -1,2 +1,4 @@
 # Mini_Project_3-Othello
-A Othello game with MiniMax search and Alpha-Beta pruning
+NTHU I2P(II) Mini Project 3
+
+Othello AI based on MiniMax search with Alpha-Beta pruning

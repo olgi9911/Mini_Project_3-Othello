@@ -1,5 +1,5 @@
 # Mini_Project_3-Othello
-### NTHU I2P(II) Mini Project 3
+### Introduction
 
 Othello AI based on MiniMax search with Alpha-Beta pruning
 

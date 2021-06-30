@@ -186,80 +186,82 @@ class OthelloBoard {
     }
 };
 
+// Returns a value if border around 4 corners can be formed, especially a L-shape one.
 int stable_edges(OthelloBoard state) {
     int val = 0, amount = 11;
     std::array<std::array<int, SIZE>, SIZE> board = state.board;
-    if (board[0][0] != 0) {
+    if (board[0][0] != 0) {  // top left
         int coeff = board[0][0] == player ? 1 : -1;
         for (int i = 0; i <= 7; i++) {
             if (board[0][i] == board[0][0]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
         for (int i = 0; i <= 7; i++) {
             if (board[i][0] == board[0][0]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
     }
-    if (board[7][0]) {
+    if (board[7][0]) {  // bottom left
         int coeff = board[7][0] == player ? 1 : -1;
         for (int i = 6; i >= 0; i--) {
             if (board[i][0] == board[7][0]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
         for (int i = 0; i <= 7; i++) {
             if (board[7][i] == board[7][0]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
     }
-    if (board[7][7]) {
+    if (board[7][7]) {  // bottom right
         int coeff = board[7][7] == player ? 1 : -1;
         for (int i = 6; i >= 0; i--) {
             if (board[i][7] == board[7][7]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
         for (int i = 6; i >= 0; i++) {
             if (board[7][i] == board[7][7]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
     }
-    if (board[0][7]) {
+    if (board[0][7]) {  // top right
         int coeff = board[0][7] == player ? 1 : -1;
         for (int i = 6; i >= 0; i--) {
             if (board[0][i] == board[0][7]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
         for (int i = 0; i <= 7; i++) {
             if (board[i][7] == board[0][7]) {
-                val += coeff * amount;
+                val += coeff;
             } else {
                 break;
             }
         }
     }
-    return val;
+    return val * amount;
 }
 
+// Gives the overall board value according to the weight table.
 int weight(OthelloBoard state) {
     int val = 0;
     for (int i = 0; i < SIZE; i++)
@@ -272,16 +274,17 @@ int weight(OthelloBoard state) {
     return val;
 }
 
+// Returns num of next_valid_spots.
 int mobility(OthelloBoard state) {
-    int val = 0;
-    if (state.cur_player == player) {
-        val += state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
-    } else if (state.cur_player == 3 - player) {
-        val -= state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
+    if (state.cur_player == player) {  // Maximize
+        return state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE);
+    } else {  // minimize
+        return -1 * (state.next_valid_spots.size() * 128 * (1 / SIZE * SIZE));
     }
-    return val;
 }
 
+// If the number of empty discs is odd, cur_player is expected to
+// play the final move, may possess slight advantage.
 int parity(OthelloBoard state) {
     if (state.disc_count[0] % 2) {
         return (state.cur_player == player ? 1 : -1);
@@ -290,6 +293,7 @@ int parity(OthelloBoard state) {
     }
 }
 
+// Returns discs difference between player and opponent.
 int discs_diff(OthelloBoard state) {
     if (state.cur_player == player) {
         return 100 * (state.disc_count[player] - state.disc_count[3 - player]) / (64 - state.disc_count[0]);
@@ -298,52 +302,57 @@ int discs_diff(OthelloBoard state) {
     }
 }
 
+// The heuristic function, the weight of each value changes according to
+// the current game stage, determined by number of empty discs.
 int set_value(OthelloBoard state) {
     int value = 0;
     if (state.done) {
-        value = 100 * state.disc_count[player] - state.disc_count[3 - player];
+        // game is finished
+        value = 100 * (state.disc_count[player] - state.disc_count[3 - player]);
     } else if (state.disc_count[0] >= 44) {
+        // opening
         value += weight(state);
         value += 2 * mobility(state);
         value += stable_edges(state);
     } else if (state.disc_count[0] >= 12) {
+        // middle stage
         value += weight(state);
         value += mobility(state);
         value += stable_edges(state);
         value += 5 * parity(state);
         value += 0.1 * discs_diff(state);
     } else {
-        //value += weight(state);
-        //value += mobility(state);
+        // endgame
         value += stable_edges(state);
         value += 5 * parity(state);
-        value += 0.75 * discs_diff(state);
+        value += discs_diff(state);
     }
     return value;
 }
 
+// The minimax function with alpha beta pruning.
 int minimax(OthelloBoard state, Point p, int depth, int alpha, int beta) {
     OthelloBoard new_state = state;
     new_state.put_disc(p);
     int val = 0;
     if (new_state.done || depth == 0) {
         return set_value(new_state);
-    } else if (new_state.cur_player == player) {
+    } else if (new_state.cur_player == player) {  // maximizing player
         val = MIN;
         for (auto new_p : new_state.next_valid_spots) {
             val = std::max(val, minimax(new_state, new_p, depth - 1, alpha, beta));
             alpha = std::max(alpha, val);
             if (beta <= alpha) {
-                break;  // alpha-beta pruning
+                break;  // beta pruning
             }
         }
-    } else if (new_state.cur_player == 3 - player) {
+    } else if (new_state.cur_player == 3 - player) {  // opponent
         val = MAX;
         for (auto new_p : new_state.next_valid_spots) {
             val = std::min(val, minimax(new_state, new_p, depth - 1, alpha, beta));
             beta = std::min(beta, val);
             if (beta <= alpha) {
-                break;  // alpha-beta pruning
+                break;  // alpha pruning
             }
         }
     }
